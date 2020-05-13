@@ -3,6 +3,7 @@ using Amazon.AspNetCore.Identity.Cognito;
 using Amazon.Extensions.CognitoAuthentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using WebAdvert.Web.Models;
 
 namespace WebAdvert.Web.Controllers
@@ -42,7 +43,7 @@ namespace WebAdvert.Web.Controllers
                     return View(model);
                 }
 
-                user.Attributes.Add("name", model.Email);
+                user.Attributes.Add(CognitoAttribute.Name.AttributeName, model.Email);
                 var createdUser = await _userManager.CreateAsync(user, model.Password);
                 if (createdUser.Succeeded)
                 {
@@ -70,7 +71,7 @@ namespace WebAdvert.Web.Controllers
                     ModelState.AddModelError("NotFound", "A user with the given email address was not found.");
                 }
 
-                var result = await (_userManager as CognitoUserManager<CognitoUser>)?.ConfirmEmailAsync(user, model.Code);
+                var result = await ((CognitoUserManager<CognitoUser>) _userManager).ConfirmSignUpAsync(user, model.Code, false);
                 if (result.Succeeded)
                 {
                     return RedirectToAction("Index", "Home");
@@ -87,6 +88,32 @@ namespace WebAdvert.Web.Controllers
             }
 
             return View(model);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Login(LoginModel model)
+        {
+            return View(model);
+        }
+
+        [HttpPost]
+        [ActionName("Login")]
+        public async Task<IActionResult> Login_Post(LoginModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, false);
+                if (result.Succeeded)
+                {
+                    return RedirectToAction("Index", "Home");
+                }
+                else
+                {
+                    ModelState.AddModelError("LoginError", "Email and password do not match.");
+                }
+            }
+
+            return View("Login", model);
         }
     }
 }

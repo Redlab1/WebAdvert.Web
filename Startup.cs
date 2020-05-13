@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -19,7 +20,10 @@ namespace WebAdvert.Web
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddCognitoIdentity();
-            services.AddControllersWithViews();
+            services.ConfigureApplicationCookie(options => { options.LoginPath = "/Accounts/Login"; });
+            services.AddMvc()
+                .SetCompatibilityVersion(CompatibilityVersion.Version_3_0)
+                .AddMvcOptions(options => { options.EnableEndpointRouting = false; });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -34,21 +38,23 @@ namespace WebAdvert.Web
                 app.UseExceptionHandler("/Home/Error");
             }
             app.UseStaticFiles();
-
-            app.UseRouting();
-
-            //app.UseAuthorization();
             app.UseAuthentication();
-
-            app.UseEndpoints(endpoints =>
+            app.UseMvc(routes =>
             {
-                endpoints.MapControllerRoute(
+                routes.MapRoute(
                     name: "default",
-                    pattern: "{controller=Home}/{action=Index}/{id?}");
+                    template: "{controller=Home}/{action=Index}/{id?}"
+                    );
 
-                endpoints.MapControllerRoute(
+                routes.MapRoute(
                     name: "accounts",
-                    pattern: "{controller=Accounts}/{action=Index}/{id?}");
+                    template: "{controller=Accounts}/{action=Signup}"
+                );
+
+                routes.MapRoute(
+                    name: "confirm",
+                    template: "{controller=Accounts}/{action=Confirm}"
+                );
             });
         }
     }
